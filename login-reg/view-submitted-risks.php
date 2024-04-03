@@ -11,14 +11,15 @@ if (!isset($_SESSION["user"]) && !isset($_SESSION["admin"])) {
 // Check if admin is logged in
 if (isset($_SESSION["admin"])) {
     $isAdmin = true;
-    // Prepare the SQL statement to retrieve risks submitted by all users
-    $sql = "SELECT m.*, u.full_name FROM message m JOIN users u ON m.user_id = u.id";
 } else {
     $isAdmin = false;
-    // Get the user ID from the session
+}
+
+// Prepare the SQL statement to retrieve risks submitted by all users (if admin) or the logged-in user
+if ($isAdmin) {
+    $sql = "SELECT m.*, u.full_name FROM message m JOIN users u ON m.user_id = u.id";
+} else {
     $user_id = isset($_SESSION["user"]["id"]) ? $_SESSION["user"]["id"] : null;
-    
-    // Prepare the SQL statement to retrieve risks submitted by the logged-in user
     $sql = "SELECT m.*, u.full_name FROM message m JOIN users u ON m.user_id = u.id WHERE m.user_id = ?";
 }
 
@@ -29,7 +30,7 @@ if (!$stmt) {
 }
 
 // Bind the user ID parameter if applicable
-if (isset($user_id)) {
+if (!$isAdmin) {
     mysqli_stmt_bind_param($stmt, "i", $user_id);
 }
 
@@ -45,6 +46,7 @@ if (mysqli_stmt_execute($stmt)) {
         echo "<tr><th>User</th><th>Subject</th><th>Category</th><th>Risk Mapping</th><th>Current Impact</th><th>Current Likelihood</th><th>Risk Source</th><th>Control Regulation</th><th>Control Number</th><th>Risk Scoring Method</th><th>Owner</th><th>Owner's Manager</th>";
         if ($isAdmin) {
             echo "<th>Plan Mitigation</th>"; // Only display for admin
+            echo "<th>Approve Mitigation</th>"; // New column for approve button
         }
         echo "</tr>";
         while ($row = mysqli_fetch_assoc($result)) {
@@ -62,6 +64,7 @@ if (mysqli_stmt_execute($stmt)) {
             echo "<td>{$row['owner']}</td>";
             echo "<td>{$row['ownermanager']}</td>";
             if ($isAdmin) {
+                // Plan Mitigation link
                 $category = $row['category'];
                 $riskMapping = $row['riskMapping'];
                 if ($category && $riskMapping) {
@@ -72,17 +75,19 @@ if (mysqli_stmt_execute($stmt)) {
                     $risk_result = mysqli_stmt_get_result($risk_stmt);
                     $risk_row = mysqli_fetch_assoc($risk_result);
                     $risk_id = $risk_row ? $risk_row['risk_id'] : null;
-                    
+
                     if ($risk_id) {
-                        echo "<td><a href='plan-mitigation.php?risk_id={$risk_id}&category={$category}&riskMapping={$riskMapping}' class='btn-plan-mitigation' data-risk-id='{$risk_id}'>Plan Mitigation</a></td>";
+                        echo "<td><a href='plan-mitigation.php?risk_id={$risk_id}&category={$category}&riskMapping={$riskMapping}' class='btn-plan-mitigation' data-risk-id='{$row['id']}'>Plan Mitigation</a></td>";
                     } else {
                         echo "<td>No Risk ID found</td>";
                     }
                 } else {
                     echo "<td>Category and riskMapping parameters are required</td>";
                 }
+
+                // Approve Mitigation button
+                echo "<td><button class='btn-approve-mitigation' data-risk-id='{$row['id']}'>Approve</button></td>";
             }
-            
             echo "</tr>";
         }
         echo "</table>";
@@ -98,4 +103,3 @@ if (mysqli_stmt_execute($stmt)) {
 mysqli_stmt_close($stmt);
 mysqli_close($conn);
 ?>
-

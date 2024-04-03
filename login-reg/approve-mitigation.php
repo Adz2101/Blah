@@ -2,33 +2,36 @@
 session_start();
 require_once "database.php"; // Include your database connection file
 
-if (isset($_POST['approve_mitigation']) && isset($_POST['risk_id']) && isset($_POST['user_id'])) {
-    $risk_id = $_POST['risk_id'];
-    $user_id = $_POST['user_id'];
-    
-    // Update the mitigation status to approved and associate it with the user
-    $sql = "UPDATE mitigation SET approved = 1, user_id = ? WHERE risk_id = ?";
-    $stmt = mysqli_prepare($conn, $sql);
-    
-    if ($stmt) {
-        // Bind parameters
-        mysqli_stmt_bind_param($stmt, "ii", $user_id, $risk_id);
-        
-        // Execute SQL statement
-        if (mysqli_stmt_execute($stmt)) {
-            // Redirect back to the user's dashboard or any other appropriate page
-            header("Location: user_dashboard.php");
-            exit();
-        } else {
-            echo "Error executing SQL statement: " . mysqli_error($conn);
-        }
-    } else {
-        echo "Error preparing SQL statement: " . mysqli_error($conn);
-    }
-} else {
-    echo "Invalid request.";
+// Check if user is logged in
+if (!isset($_SESSION["admin"])) {
+    // Redirect if not logged in as admin
+    header("Location: login.php");
+    exit();
 }
 
-// Close the database connection
+// Check if risk ID is provided
+if (!isset($_GET["risk_id"])) {
+    // Redirect if risk ID is missing
+    header("Location: admin-dashboard.php");
+    exit();
+}
+
+$risk_id = $_GET["risk_id"];
+
+// Update mitigation approval status in the database
+$sql = "UPDATE message SET mitigation_approved = 1 WHERE id =?";
+$stmt = mysqli_prepare($conn, $sql);
+mysqli_stmt_bind_param($stmt, "i", $risk_id);
+
+if (mysqli_stmt_execute($stmt)) {
+    // Mitigation approved successfully
+    echo "Mitigation approved successfully";
+    // Optionally, you can send an email notification to the user here
+} else {
+    // Error updating mitigation approval status
+    echo "Error: ". mysqli_error($conn);
+}
+
+mysqli_stmt_close($stmt);
 mysqli_close($conn);
 ?>

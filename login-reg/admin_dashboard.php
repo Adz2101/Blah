@@ -79,5 +79,32 @@ $admin = $_SESSION["admin"];
     });
     }
 </script>
+
+<script>
+    $(document).ready(function() {
+        // Event handler for the "Approve Mitigation" button click
+        $(document).on("click", ".btn-approve-mitigation", function() {
+            // Get the risk ID associated with the clicked button
+            var riskId = $(this).data("risk-id");
+            
+            // Send an AJAX request to approve-mitigation.php
+            $.ajax({
+                url: "approve-mitigation.php?risk_id=" + riskId,
+                type: "GET",
+                success: function(response) {
+                    // Display the response message (if needed)
+                    alert(response);
+                    // Optionally, you can refresh the submitted risks section
+                    viewSubmittedRisks();
+                },
+                error: function(xhr, status, error) {
+                    // Handle errors
+                    console.error(xhr.responseText);
+                }
+            });
+        });
+    });
+</script>
+
 </body>
 </html>
